@@ -85,6 +85,10 @@ parser.add_argument('--input', type=str, default='input_files/21.json', help='Ф
 parser.add_argument('--output', type=str, default='output_files/res.json', help='Файл с выходными данными для результатов вычислений в фромате json')
 parser.add_argument('--mode', type=str, default='uptime', help='Выбор показателя для вычисления (uptime или recover)')
 parser.add_argument('--scale', type=int, default=300, help='Граница шкалы по Y')
+
+parser.add_argument('--xlabel', type=str, default='Число ЭМ в основной подсистеме', help='Лейбл для оси X')
+parser.add_argument('--ylabel', type=str, default='Матожидание времени безотказной работы', help='Лейбл для оси Y')
+parser.add_argument('--gtitle', type=str, default='Средняя наработка до отказа', help='Титульный лейбл для графика')
 # Разбираем аргументы командной строки
 args = parser.parse_args()
 
@@ -128,16 +132,19 @@ for n in range(_n_start, _n_end + 1, _n_step):
     _ns.append(n)
 
 if len(_meows) > 1:
-    labels = ['μ = 1 1/hours', 'μ = 10 1/hours', 'μ = 100 1/hours', 'μ = 1000 1/hours']
+    if args.mode == 'uptime':
+        labels = ['μ = 1 1/hours', 'μ = 10 1/hours', 'μ = 100 1/hours', 'μ = 1000 1/hours']
+    else:
+        labels = ['μ = 1 1/hours', 'μ = 2 1/hours', 'μ = 4 1/hours', 'μ = 6 1/hours']
 elif len(_lamb) > 1:
     labels = ['λ = 10^-5 1/hours', 'λ = 10^-6 1/hours', 'λ = 10^-7 1/hours', 'λ = 10^-8 1/hours', 'λ = 10^-9 1/hours']
 else:
     labels = ['m = 1', 'm = 2', 'm = 3', 'm = 4']
 
 if args.mode == 'uptime':
-    pt.plot_data(_ns, uptimes_list, labels, args.scale)
+    pt.plot_data(_ns, uptimes_list, labels, args.xlabel, args.ylabel, args.scale, args.gtitle)
 else:
-    pt.plot_data(_ns, recoveries_list, labels, args.scale)
+    pt.plot_data(_ns, recoveries_list, labels, args.xlabel, args.ylabel, args.scale, args.gtitle)
 
 with open(args.output, 'w') as ofile:
     if args.mode == 'uptime':
