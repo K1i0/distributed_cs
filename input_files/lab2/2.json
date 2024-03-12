@@ -1,0 +1,12 @@
+{
+    "N": 10,
+    "n_start": 8,
+    "n_end": 10,
+    "n_step": 1,
+    "lamb": 0.024,
+    "meow": 0.71,
+    "m": 1,
+    "t_start": 0,
+    "t_end": 24,
+    "t_step": 2
+}
