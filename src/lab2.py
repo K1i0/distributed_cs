@@ -136,6 +136,12 @@ def create_ustar_list(t_start, t_end, t_step, N, n, lamb, meow, m):
     
     return ustars
 
+def create_s_list(n_start, n_end, n_step, N, lamb, meow, m):
+    s = []
+    for n in range(n_start, n_end + n_step, n_step):
+        s.append(calc_S(N, n, m, lamb, meow))
+    return s
+
 
 def main():
     parser = argparse.ArgumentParser(description="Command line arguments parser")
@@ -175,10 +181,6 @@ def main():
         
         print('N: {}\nlamb: {}\nm: {}\nmeow: {}\nn_start: {}\nn_end: {}\nn_step: {}'.format(_N, _lamb, _m, _meow, _n_start,
                                                                                         _n_end, _n_step))
-
-    ts = []
-    for t in range(_t_start, _t_end + _t_step, _t_step):
-        ts.append(t)
     
     results = []
     if args.R:
@@ -187,17 +189,25 @@ def main():
     elif args.U:
         for n in range(_n_start, _n_end + _n_step):
             results.append(create_ustar_list(_t_start, _t_end, _t_step, _N, n, _lamb, _meow, _m))
+    elif args.S:
+        for m in _m:
+            results.append(create_s_list(_n_start, _n_end, _n_step, _N, _lamb, _meow, m))
+    else:
+        sys.exit()
 
     if args.R:
         labels = ['n = 8', 'n = 9', 'n = 10']
     elif args.U:
         labels = ['n = 10', 'n = 11', 'n = 12', 'n = 13','n = 14','n = 15','n = 16']
 
-    pt.plot_data(ts, results, labels, args.xlabel, args.ylabel, args.scale, args.gtitle)
+    if args.R or args.U:
+        ts = []
+        for t in range(_t_start, _t_end + _t_step, _t_step):
+            ts.append(t) 
+        pt.plot_data(ts, results, labels, args.xlabel, args.ylabel, args.scale, args.gtitle)
     
     with open(args.output, 'w') as ofile:
-        if args.R or args.U:
-            ofile.write(json.dumps(results))
+        ofile.write(json.dumps(results))
 
 
 

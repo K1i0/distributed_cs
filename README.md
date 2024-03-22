@@ -21,3 +21,16 @@
 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
 
 ![График  зависимости  значений  показателя  T от параметра λ](/output_files/res32.png)
+
+## Лабораторная работа №2
+
+Команды запуска:
+`py .\src\lab2.py -R --input .\input_files\lab2\2.json --output .\output_files\lab2\2.json --gtitle 'График зависимости оперативной надежности от времени t для различных n' --ylabel 'Значение функции оперативной надежности' --xlabel 'Момент времени'`
+
+![](/output_files/lab2/res2.png)
+
+`py .\src\lab2.py -U --input .\input_files\lab2\3.json --output .\output_files\lab2\3.json --gtitle 'График зависимости оперативной восстановимости от времени t для различных n' --ylabel 'Значение функции оперативной восстановимости' --xlabel 'Момент времени'`
+
+![](/output_files/lab2/res3.png)
+
+`py .\src\lab2.py -S --input .\input_files\lab2\4.json --output .\output_files\lab2\4.json`
