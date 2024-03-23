@@ -1,6 +1,21 @@
 import json
 import plot as pt
 import argparse
+import threading
+from datetime import datetime
+import sys
+import time
+
+
+stop_event = threading.Event()
+
+
+def show_worktime(start_time):
+    while not stop_event.is_set():
+        current_time = datetime.now()
+        sys.stdout.write('\r' + 'Duration: {} '.format(current_time - start_time))
+        time.sleep(.1)
+        sys.stdout.flush()
 
 
 def calc_meow(_N: int, _l: int, _m: int, _meow: int):
@@ -29,22 +44,20 @@ def calc_uptime(_N, n, _lamb, _m, _meow):
 def create_uptime_list(n_start, n_end, n_step, _N, _lamb, _m, _meows):
     uptime_list = []
     for n in range(n_start, n_end + 1, n_step):
-        if use_lamb:
-            uptime_result = calc_uptime(_N, n, _lamb[i], _m[0], _meows[0])
-        elif use_m:
-            uptime_result = calc_uptime(_N, n, _lamb[0], _m[i], _meows[0])
-        else:
-            uptime_result = calc_uptime(_N, n, _lamb[0], _m[0], _meows[i])
+        uptime_result = calc_uptime(_N, n, _lamb, _m, _meows)
         uptime_list.append(uptime_result)
     return [round(val, 4) for val in uptime_list]
 
 
 def calc_recovery_time(_N, n, _lamb, _m, _meow):
-    if n > 1:
+    if n == 1:
+        return 1.0 / calc_meow(_N, 0, _m, _meow)
+    elif n > 1:
         part1 = 1.0
         for l in range(1, n - 1 + 1):
             part1 *= (l * _lamb) / calc_meow(_N, l, _m, _meow)
         part1 *= 1.0 / calc_meow(_N, 0, _m, _meow)
+        print(f'part1: {part1}')
 
         part2 = 0.0
         for j in range(1, n - 1 + 1):
@@ -52,24 +65,18 @@ def calc_recovery_time(_N, n, _lamb, _m, _meow):
             for l in range(j, n - 1 + 1):
                 compos *= (l * _lamb) / calc_meow(_N, l, _m, _meow)
             part2 += (1.0 / (j * _lamb)) * compos
-
+        print(f'part2: {part2}')
         recovery_time = part1 + part2
         return recovery_time
-    elif n == 1:
-        return 1.0 / calc_meow(_N, 0, _m, _meow)
     else:
         return None
 
 
-def create_recovery_list(n_start, n_end, n_step, _N, _lamb, _m, _meows):
+def create_recovery_list(n_start, n_end, n_step, _N, lamb, m, meow):
     recovery_list = []
     for n in range(n_start, n_end + 1, n_step):
-        if use_lamb:
-            recovery_result = calc_recovery_time(_N, n, _lamb[i], _m[0], _meows[0])
-        elif use_m:
-            recovery_result = calc_recovery_time(_N, n, _lamb[0], _m[i], _meows[0])
-        else:
-            recovery_result = calc_recovery_time(_N, n, _lamb[0], _m[0], _meows[i])
+        recovery_result = calc_recovery_time(_N, n, lamb, m, meow)
+        print(recovery_result)
         recovery_list.append(recovery_result)
     return [round(val, 4) for val in recovery_list]
 
@@ -82,7 +89,9 @@ def create_recovery_list(n_start, n_end, n_step, _N, _lamb, _m, _meows):
 parser = argparse.ArgumentParser(description="Command line arguments parser")
 # Добавляем аргументы
 parser.add_argument('--input', type=str, default='input_files/lab1/21.json', help='Файл с входными данными для вычислений в фромате json')
-parser.add_argument('--output', type=str, default='output_files/lab1/res.json', help='Файл с выходными данными для результатов вычислений в фромате json')
+parser.add_argument('--output1', type=str, default='output_files/lab3/res_uptime.json', help='Файл с выходными данными для результатов вычислений в фромате json')
+parser.add_argument('--output2', type=str, default='output_files/lab3/res_recovery.json', help='Файл с выходными данными для результатов вычислений в фромате json')
+
 parser.add_argument('--mode', type=str, default='uptime', help='Выбор показателя для вычисления (uptime или recover)')
 parser.add_argument('--scale', type=int, default=300, help='Граница шкалы по Y')
 
@@ -104,6 +113,17 @@ with open(args.input, 'r') as jfile:
     print('N: {}\nlamb: {}\nm: {}\nmeow: {}\nn_start: {}\nn_end: {}\nn_step: {}'.format(_N, _lamb, _m, _meows, _n_start,
                                                                                         _n_end, _n_step))
 
+start_time = datetime.now()
+worktime_thread = threading.Thread(target=show_worktime, args=(start_time,), daemon=True)
+worktime_thread.daemon = True
+
+try:
+    worktime_thread.start()
+    print()
+except (KeyboardInterrupt, SystemExit):
+    worktime_thread.join()
+    sys.exit()
+
 uptimes_list = []
 recoveries_list = []
 
@@ -113,41 +133,57 @@ conditions = [
     (len(_m) > 1, _m, False, True)
 ]
 
-for condition, parameter, use_lamb, use_m in conditions:
-    if condition:
-        for i in range(len(parameter)):
-            if args.mode == 'uptime':
-                uptimes_list.append(
-                    create_uptime_list(_n_start, _n_end, _n_step, _N, _lamb, _m, _meows))
-                print(uptimes_list[i])
-            else:
-                recoveries_list.append(
-                    create_recovery_list(_n_start, _n_end, _n_step, _N, _lamb, _m, _meows))
-                print(recoveries_list[i])
+# for condition, parameter, use_lamb, use_m in conditions:
+#     if condition:
+#         for i in range(len(parameter)):
+#             uptimes_list.append(
+#                     create_uptime_list(_n_start, _n_end, _n_step, _N, _lamb, _m, _meows))
+#             print(uptimes_list[i])
+#             recoveries_list.append(
+#                     create_recovery_list(_n_start, _n_end, _n_step, _N, _lamb, _m, _meows))
+#             print(recoveries_list[i])
+                
 
-        break  # Завершаем цикл после выполнения одного из условий
+        # break  # Завершаем цикл после выполнения одного из условий
+
+index = 0
+for lamb in _lamb:
+    print(f'lamb: {lamb}')
+    for meow in _meows:
+        print(f'meow: {meow}')
+        for m in _m:
+            print(f'm: {m}')
+            # uptimes_list.append(
+            #         create_uptime_list(_n_start, _n_end, _n_step, _N, lamb, m, meow))
+            # print(uptimes_list[index])
+            recoveries_list.append(
+                    create_recovery_list(_n_start, _n_end, _n_step, _N, lamb, m, meow))
+            print(recoveries_list[index])
+            index += 1
 
 _ns = []
 for n in range(_n_start, _n_end + 1, _n_step):
     _ns.append(n)
 
-if len(_meows) > 1:
-    if args.mode == 'uptime':
-        labels = ['μ = 1 1/hours', 'μ = 10 1/hours', 'μ = 100 1/hours', 'μ = 1000 1/hours']
-    else:
-        labels = ['μ = 1 1/hours', 'μ = 2 1/hours', 'μ = 4 1/hours', 'μ = 6 1/hours']
-elif len(_lamb) > 1:
-    labels = ['λ = 10^-5 1/hours', 'λ = 10^-6 1/hours', 'λ = 10^-7 1/hours', 'λ = 10^-8 1/hours', 'λ = 10^-9 1/hours']
-else:
-    labels = ['m = 1', 'm = 2', 'm = 3', 'm = 4']
+# if len(_meows) > 1:
+#     if args.mode == 'uptime':
+#         labels = ['μ = 1 1/hours', 'μ = 10 1/hours', 'μ = 100 1/hours', 'μ = 1000 1/hours']
+#     else:
+#         labels = ['μ = 1 1/hours', 'μ = 2 1/hours', 'μ = 4 1/hours', 'μ = 6 1/hours']
+# elif len(_lamb) > 1:
+#     labels = ['λ = 10^-5 1/hours', 'λ = 10^-6 1/hours', 'λ = 10^-7 1/hours', 'λ = 10^-8 1/hours', 'λ = 10^-9 1/hours']
+# else:
+#     labels = ['m = 1', 'm = 2', 'm = 3', 'm = 4']
 
-if args.mode == 'uptime':
-    pt.plot_data(_ns, uptimes_list, labels, args.xlabel, args.ylabel, args.scale, args.gtitle)
-else:
-    pt.plot_data(_ns, recoveries_list, labels, args.xlabel, args.ylabel, args.scale, args.gtitle)
+# if args.mode == 'uptime':
+#     pt.plot_data(_ns, uptimes_list, labels, args.xlabel, args.ylabel, args.scale, args.gtitle)
+# else:
+#     pt.plot_data(_ns, recoveries_list, labels, args.xlabel, args.ylabel, args.scale, args.gtitle)
 
-with open(args.output, 'w') as ofile:
-    if args.mode == 'uptime':
-        ofile.write(json.dumps(uptimes_list))
-    else:
-        ofile.write(json.dumps(recoveries_list))
+with open(args.output1, 'w') as ofile:
+    ofile.write(json.dumps(uptimes_list))
+
+with open(args.output2, 'w') as ofile:
+    ofile.write(json.dumps(recoveries_list))
+
+stop_event.set()
