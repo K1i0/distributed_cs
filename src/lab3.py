@@ -162,25 +162,6 @@ def main():
     uptimes_list = []
     recoveries_list = []
 
-    conditions = [
-        (len(_meows) > 1, _meows, False, False),
-        (len(_lamb) > 1, _lamb, True, False),
-        (len(_m) > 1, _m, False, True)
-    ]
-
-    # for condition, parameter, use_lamb, use_m in conditions:
-    #     if condition:
-    #         for i in range(len(parameter)):
-    #             uptimes_list.append(
-    #                     create_uptime_list(_n_start, _n_end, _n_step, _N, _lamb, _m, _meows))
-    #             print(uptimes_list[i])
-    #             recoveries_list.append(
-    #                     create_recovery_list(_n_start, _n_end, _n_step, _N, _lamb, _m, _meows))
-    #             print(recoveries_list[i])
-                    
-
-            # break  # Завершаем цикл после выполнения одного из условий
-
     index = 0
     for lamb in _lamb:
         print(f'lamb: {lamb}')
@@ -200,21 +181,6 @@ def main():
     for n in range(_n_start, _n_end + 1, _n_step):
         _ns.append(n)
 
-    # if len(_meows) > 1:
-    #     if args.mode == 'uptime':
-    #         labels = ['μ = 1 1/hours', 'μ = 10 1/hours', 'μ = 100 1/hours', 'μ = 1000 1/hours']
-    #     else:
-    #         labels = ['μ = 1 1/hours', 'μ = 2 1/hours', 'μ = 4 1/hours', 'μ = 6 1/hours']
-    # elif len(_lamb) > 1:
-    #     labels = ['λ = 10^-5 1/hours', 'λ = 10^-6 1/hours', 'λ = 10^-7 1/hours', 'λ = 10^-8 1/hours', 'λ = 10^-9 1/hours']
-    # else:
-    #     labels = ['m = 1', 'm = 2', 'm = 3', 'm = 4']
-
-    # if args.mode == 'uptime':
-    #     pt.plot_data(_ns, uptimes_list, labels, args.xlabel, args.ylabel, args.scale, args.gtitle)
-    # else:
-    #     pt.plot_data(_ns, recoveries_list, labels, args.xlabel, args.ylabel, args.scale, args.gtitle)
-
     with open(args.output1, 'w') as ofile:
         ofile.write(json.dumps(uptimes_list))
 
@@ -222,6 +188,7 @@ def main():
         ofile.write(json.dumps(recoveries_list))
 
     stop_event.set()
+
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
