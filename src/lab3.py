@@ -50,14 +50,18 @@ def create_uptime_list(n_start, n_end, n_step, _N, _lamb, _m, _meows):
     return [round(val, 4) for val in uptime_list]
 
 
-# Принимает кортеж args в качестве входных данных (j, n, _lamb, _N, _m и _meow)
-# Вычисляет значение (частичное произведение) для конкретного j
+# Принимает кортеж args в качестве входных данных (start_j, end_j, n, _lamb, _N, _m и _meow)
+# Вычисляет значение (частичное произведение) для непрерывного блока j
 def calc_recovery_time_part(args):
-    j, n, _lamb, _N, _m, _meow = args
-    compos = 1.0
-    for l in range(j, n - 1 + 1):
-        compos *= (l * _lamb) / calc_meow(_N, l, _m, _meow)
-    return (1.0 / (j * _lamb)) * compos
+    start_j, end_j, n, _lamb, _N, _m, _meow = args
+    part2 = 0.0
+    for j in range(start_j, end_j + 1):
+        compos = 1.0
+        for l in range(j, n - 1 + 1):
+            compos *= (l * _lamb) / calc_meow(_N, l, _m, _meow)
+        part2 += (1.0 / (j * _lamb)) * compos
+    return part2
+
 
 def calc_recovery_time(_N, n, _lamb, _m, _meow):
     if n == 1:
@@ -68,22 +72,32 @@ def calc_recovery_time(_N, n, _lamb, _m, _meow):
             part1 *= (l * _lamb) / calc_meow(_N, l, _m, _meow)
         part1 *= 1.0 / calc_meow(_N, 0, _m, _meow)
 
-        try:
-            # Распараллелить вычисления части среднего времени восстановления
-            # Настройка пула процессов для параллельного вычисления
-            pool = multiprocessing.Pool()
-            # Создать список аргументов args для каждого значения j от 1 до n
-            args = [(j, n, _lamb, _N, _m, _meow) for j in range(1, n - 1 + 1)]
-            # Использовать pool.map(), чтобы распределить вычисление part2 для каждого набора аргументов, используя функцию calc_recovery_time_part
-            part2_values = pool.map(calc_recovery_time_part, args)
-            print(f'part2 values {part2_values}')
-            # После завершения всех процессов, закрыть пул и ожидать завершения всех процессов с помощью pool.join()
-            pool.close()
-            pool.join()
-        except (KeyboardInterrupt, SystemExit):
-            sys.exit()
+        # Распараллелить вычисления части среднего времени восстановления
+        # Настройка пула процессов для параллельного вычисления
+        pool = multiprocessing.Pool()
+
+        num_cores = multiprocessing.cpu_count()
+        chunk_size = n // num_cores
+        # print(f'cpu_count: {num_cores}, chunk_size: {chunk_size}')
         
-        # Суммировать значения, вычисленные для part2
+        # Создаем аргументы для каждого блока
+        args_list = []
+        for start_j in range(1, n - 1, chunk_size):
+            end_j = min(start_j + chunk_size - 1, n - 1)
+            # print(f'start_j: {start_j}, end_j: {end_j}')
+            args_list.append((start_j, end_j, n, _lamb, _N, _m, _meow))
+        
+        # Распараллеливаем вычисления
+        part2_results = pool.map_async(calc_recovery_time_part, args_list)
+
+        # Получаем результаты
+        part2_values = part2_results.get()
+
+        # Закрываем пул
+        pool.close()
+        pool.join()
+        
+        # Суммируем значения part2
         part2 = sum(part2_values)
         recovery_time = part1 + part2
         return recovery_time
